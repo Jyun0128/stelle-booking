@@ -260,6 +260,17 @@
             cursor: pointer;
         }
 
+        /* --- 新增提醒文字樣式 --- */
+        .reminder-text {
+            font-size: 13px;
+            color: var(--primary-brown);
+            margin-top: 12px;
+            margin-bottom: 5px;
+            font-weight: 500;
+            letter-spacing: 0.5px;
+            line-height: 1.5;
+        }
+
     </style>
 </head>
 <body>
@@ -320,6 +331,8 @@
                     <select id="inputTime" required>
                         <!-- JS 會自動產生選項 -->
                     </select>
+                    <!-- 新增的提醒文字 -->
+                    <p class="reminder-text">送出不代表預約成功，請靜待預約成功訊息通知</p>
                 </div>
 
                 <button type="submit" id="submitBtn" class="btn-submit">確認預約</button>
@@ -352,7 +365,7 @@
         
         const YOUR_LIFF_ID = '2008676848-7eEjQ8U9'; 
         
-        // ★★★ 請將下方的 URL 替換為您第一步複製的 Google Apps Script 網址 ★★★
+        // ★★★ 已自動保留您的 Google Script URL ★★★
         const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxQYTqYjXEz1LcG4n8dPTInckOTSl-Ty0CNAk8qGyufcVHiCz_Zt74xBbCEDFr0XRyMvg/exec'; 
 
         // 初始化時間選單 (10:00 - 20:00)
@@ -461,8 +474,9 @@
                 userId: userId
             };
 
-            // 1. 發送至 Google Sheet (使用 fetch no-cors 模式)
-            if (GOOGLE_SCRIPT_URL && GOOGLE_SCRIPT_URL !== 'https://script.google.com/macros/s/AKfycbxQYTqYjXEz1LcG4n8dPTInckOTSl-Ty0CNAk8qGyufcVHiCz_Zt74xBbCEDFr0XRyMvg/exec') {
+            // 1. 發送至 Google Sheet (修正後的邏輯)
+            // 只要網址存在且是 Google Script 開頭，就執行發送
+            if (GOOGLE_SCRIPT_URL && GOOGLE_SCRIPT_URL.startsWith('https://script.google.com')) {
                 fetch(GOOGLE_SCRIPT_URL, {
                     method: 'POST',
                     body: JSON.stringify(data),
