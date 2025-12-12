@@ -139,6 +139,14 @@
             text-align-last: center; 
         }
 
+        /* ★★★ 唯讀(不可修改)欄位的樣式 ★★★ */
+        input:disabled, select:disabled {
+            background-color: #EFEBE9; /* 淺灰色背景 */
+            color: #8D6E63; /* 文字稍微變淡 */
+            cursor: not-allowed;
+            border-color: #E0E0E0;
+        }
+
         select {
             background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%238D6E63' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
             background-repeat: no-repeat;
@@ -200,7 +208,7 @@
             word-break: break-all;
         }
 
-        /* --- 詳情卡片樣式 (新功能) --- */
+        /* --- 詳情卡片樣式 --- */
         .details-card {
             background: #FAFAFA;
             border-radius: 12px;
@@ -353,9 +361,12 @@
                 mode: params.get('mode'),
                 name: params.get('name'),
                 service: params.get('service'),
-                time: params.get('time')
+                time: params.get('time'),
+                phone: params.get('phone') 
             };
         }
+
+        let currentParams = {}; 
 
         window.onload = function() {
             initTimeSlots();
@@ -378,7 +389,7 @@
                     if (!liff.isLoggedIn()) {
                         liff.login();
                     } else {
-                        handlePageLogic(); // 登入後決定顯示哪個畫面
+                        handlePageLogic(); 
                     }
                 })
                 .catch((err) => {
@@ -389,7 +400,6 @@
 
         // --- 核心邏輯：決定顯示表單還是詳情 ---
         function handlePageLogic() {
-            // 1. 先取得用戶資料 (為了 UserID)
             liff.getProfile().then(profile => {
                 document.getElementById('userName').innerText = profile.displayName;
                 document.getElementById('inputName').value = profile.displayName;
@@ -397,47 +407,65 @@
                 const img = document.getElementById('userPicture');
                 img.src = profile.pictureUrl ? profile.pictureUrl : "https://via.placeholder.com/80";
 
-                // 2. 檢查網址是否有參數 (代表是從卡片按鈕進來的)
-                const params = getQueryParams();
+                // 2. 檢查網址是否有參數
+                currentParams = getQueryParams();
                 
-                if (params.mode === 'view') {
+                if (currentParams.mode === 'view') {
                     // --- 顯示詳情模式 ---
                     document.getElementById('booking-form-section').style.display = 'none';
                     document.getElementById('booking-details-section').style.display = 'block';
 
-                    // 填入參數資料
-                    document.getElementById('viewName').innerText = params.name || profile.displayName;
-                    document.getElementById('viewService').innerText = params.service || "未指定";
-                    document.getElementById('viewTime').innerText = params.time || "未指定";
+                    // 填入詳情資料
+                    document.getElementById('viewName').innerText = currentParams.name || profile.displayName;
+                    document.getElementById('viewService').innerText = currentParams.service || "未指定";
+                    document.getElementById('viewTime').innerText = currentParams.time || "未指定";
 
-                    // 同時把這些資料先填入表單，方便用戶修改
-                    document.getElementById('inputName').value = params.name || profile.displayName;
-                    if(params.service) document.getElementById('inputService').value = params.service;
+                    // ★★★ 在背景先將表單填好，以免切換過去是空白 ★★★
+                    document.getElementById('inputName').value = currentParams.name || profile.displayName;
+                    if(currentParams.service) document.getElementById('inputService').value = currentParams.service;
+                    if(currentParams.phone) document.getElementById('inputPhone').value = currentParams.phone; // 填入電話
                     
-                    // 嘗試解析日期時間填回表單 (格式: 2025/01/01 14:00)
-                    if(params.time && params.time.includes(' ')) {
-                        const parts = params.time.split(' ');
-                        const datePart = parts[0].replace(/\//g, '-'); // 轉回 2025-01-01
-                        const timePart = parts[1];
-                        document.getElementById('inputDate').value = datePart;
-                        document.getElementById('inputTime').value = timePart;
+                    if(currentParams.time && currentParams.time.includes(' ')) {
+                        const parts = currentParams.time.split(' ');
+                        document.getElementById('inputDate').value = parts[0].replace(/\//g, '-');
+                        document.getElementById('inputTime').value = parts[1];
                     }
-
                 } else {
-                    // --- 顯示原本的預約表單 ---
+                    // --- 正常預約模式 (全部可編輯) ---
                     document.getElementById('booking-form-section').style.display = 'block';
                     document.getElementById('booking-details-section').style.display = 'none';
+                    // 確保欄位是開啟的
+                    enableAllFields();
                 }
 
             }).catch(err => console.error('Profile Error:', err));
         }
 
-        // --- 切換到修改模式 ---
+        // --- 切換到修改模式 (鎖定舊資料) ---
         function switchToEditMode() {
             document.getElementById('booking-details-section').style.display = 'none';
             document.getElementById('booking-form-section').style.display = 'block';
-            // 讓按鈕文字變更，提示這是修改
+            
+            // ★★★ 關鍵：鎖定不可修改的欄位 ★★★
+            document.getElementById('inputName').disabled = true;
+            document.getElementById('inputPhone').disabled = true;
+            document.getElementById('inputService').disabled = true;
+            
+            // 確保日期時間是可以修改的
+            document.getElementById('inputDate').disabled = false;
+            document.getElementById('inputTime').disabled = false;
+
             document.getElementById('submitBtn').innerText = "確認修改預約";
+        }
+
+        // 輔助：開啟所有欄位 (給一般預約用)
+        function enableAllFields() {
+            document.getElementById('inputName').disabled = false;
+            document.getElementById('inputPhone').disabled = false;
+            document.getElementById('inputService').disabled = false;
+            document.getElementById('inputDate').disabled = false;
+            document.getElementById('inputTime').disabled = false;
+            document.getElementById('submitBtn').innerText = "確認預約";
         }
 
         function submitBooking() {
@@ -477,7 +505,13 @@
 
             showCustomModal(name, service, date, time);
             submitBtn.disabled = false;
-            submitBtn.innerText = "確認預約";
+            
+            // 如果是修改模式，送出後維持按鈕文字，避免混淆
+            if(currentParams.mode === 'view') {
+                 submitBtn.innerText = "確認修改預約";
+            } else {
+                 submitBtn.innerText = "確認預約";
+            }
         }
 
         function showCustomModal(name, service, date, time) {
@@ -495,4 +529,3 @@
     </script>
 </body>
 </html>
-
