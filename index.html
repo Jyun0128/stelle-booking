@@ -2,92 +2,231 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Stelle studio 蒔黛美學 - 預約系統</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- 1. 引入 LINE LIFF SDK -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Stelle studio 預約系統</title>
+    <!-- 引入優雅的襯線體 Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600&family=Noto+Sans+TC:wght@300;400;500&display=swap" rel="stylesheet">
+    <!-- 引入 LINE LIFF SDK -->
     <script charset="utf-8" src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
-
+    
     <style>
+        /* --- 2025 新版摩卡配色 --- */
+        :root {
+            /* 您的指定色碼 */
+            --primary-brown: #8D6E63;     /* 主色調：柔和棕 */
+            --bg-color: #F8F6F3;          /* 頁面背景：暖白 */
+            --card-white: #FFFFFF;        /* 卡片背景：純白 */
+            --text-dark: #5D4037;         /* 深色文字：深褐 */
+            --text-light: #8D6E63;        /* 淺色文字/標籤 */
+            --accent-bar: #795548;        /* 深色裝飾/按鈕Hover */
+            --price-color: #6D4C41;       /* 價格/重點色 */
+
+            /* 衍生變數 (用於介面元件) */
+            --input-bg: #FCFBF9;          /* 輸入框背景 (微暖) */
+            --input-border: #E8E0DD;      /* 輸入框邊框 */
+        }
+
+        * { box-sizing: border-box; }
+
         body {
-            background-color: #f9fafb;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-family: 'Noto Sans TC', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-dark);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            min-height: 100vh;
         }
-        .btn-primary {
-            background-color: #06C755;
-            transition: all 0.3s ease;
+
+        /* 主容器 */
+        .container {
+            background-color: var(--card-white);
+            width: 100%;
+            max-width: 480px; /* 手機版型寬度 */
+            padding: 40px 30px;
+            border-radius: 20px;
+            box-shadow: 0 10px 25px rgba(93, 64, 55, 0.08);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
         }
-        .btn-primary:hover {
-            background-color: #05b34c;
-            transform: translateY(-1px);
+
+        /* --- 標題區域 --- */
+        .brand-title {
+            font-family: 'Cormorant Garamond', serif; /* 優雅襯線體 */
+            font-size: 38px;
+            font-weight: 600;
+            color: var(--text-dark);
+            margin: 0 0 5px 0;
+            letter-spacing: 1px;
         }
-        .fade-in { animation: fadeIn 0.3s ease-out forwards; }
+
+        .sub-title {
+            font-size: 14px;
+            color: var(--text-light);
+            font-weight: 500;
+            margin-bottom: 30px;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+        }
+
+        /* --- 載入狀態 --- */
+        #loading-status {
+            font-size: 14px;
+            color: var(--text-light);
+            margin-top: 20px;
+            text-align: center;
+        }
+
+        /* --- 用戶資料區域 (預設隱藏，抓到資料後顯示) --- */
+        #booking-form-section {
+            display: none; 
+            width: 100%;
+            text-align: center;
+            animation: fadeIn 0.8s ease;
+        }
+
         @keyframes fadeIn {
-            from { opacity: 0; transform: scale(0.9); }
-            to { opacity: 1; transform: scale(1); }
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
         }
+
+        .user-avatar {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 3px solid var(--bg-color);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.08);
+            margin-bottom: 15px;
+        }
+
+        .greeting {
+            font-size: 16px;
+            color: var(--text-dark);
+            margin-bottom: 25px;
+        }
+
+        .greeting span {
+            font-weight: 500;
+            color: var(--primary-brown);
+        }
+
+        /* --- 表單樣式 --- */
+        .form-group {
+            text-align: center; 
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            font-size: 14px;
+            color: var(--text-light);
+            margin-bottom: 8px;
+            font-weight: 500;
+            text-align: left; 
+            padding-left: 5px; 
+        }
+
+        input, select {
+            width: 100%;
+            padding: 12px 15px;
+            border: 1px solid var(--input-border);
+            background-color: var(--input-bg);
+            border-radius: 8px;
+            font-size: 16px; 
+            color: var(--text-dark);
+            outline: none;
+            transition: all 0.3s ease;
+            appearance: none; 
+            text-align: center; 
+            text-align-last: center; 
+        }
+
+        /* 下拉選單箭頭客製化 */
+        select {
+            background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%238D6E63' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+            background-repeat: no-repeat;
+            background-position: right 15px center; 
+            background-size: 16px;
+        }
+
         input:focus, select:focus {
-            border-color: #06C755;
-            box-shadow: 0 0 0 3px rgba(6, 199, 85, 0.1);
+            border-color: var(--primary-brown);
+            background-color: #fff;
+            box-shadow: 0 0 0 3px rgba(141, 110, 99, 0.1);
         }
-        /* 隱藏未載入完成的區塊 */
-        .loading-overlay {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: white; z-index: 50; display: flex;
-            justify-content: center; align-items: center;
+        
+        ::placeholder {
+            color: #D7CCC8;
+            opacity: 1;
+            text-align: center; 
         }
+
+        /* 按鈕樣式 */
+        .btn-submit {
+            background-color: var(--primary-brown);
+            color: white;
+            border: none;
+            padding: 15px;
+            width: 100%;
+            font-size: 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            margin-top: 15px;
+            letter-spacing: 1.5px;
+            transition: background 0.3s;
+            font-weight: 500;
+        }
+
+        .btn-submit:hover {
+            background-color: var(--accent-bar);
+        }
+
+        /* 隱藏的 User ID 顯示 */
+        .debug-info {
+            font-size: 10px;
+            color: #E0E0E0;
+            margin-top: 30px;
+            word-break: break-all;
+        }
+
     </style>
 </head>
-<body class="flex items-center justify-center min-h-screen p-4">
+<body>
 
-    <!-- 載入中遮罩 -->
-    <div id="loadingMask" class="loading-overlay">
-        <div class="text-center">
-            <i class="fa-solid fa-circle-notch fa-spin text-4xl text-green-500 mb-2"></i>
-            <p class="text-gray-500 text-sm">系統連線中...</p>
-        </div>
-    </div>
+    <div class="container">
+        <!-- Header -->
+        <h1 class="brand-title">Stelle studio</h1>
+        <h2 class="sub-title">蒔黛美學 線上預約</h2>
 
-    <!-- 主容器 -->
-    <div class="w-full max-w-md bg-white rounded-2xl shadow-xl overflow-hidden relative min-h-[500px] flex flex-col">
-        
-        <div class="h-2 w-full bg-gradient-to-r from-green-400 to-green-600"></div>
+        <!-- Loading State -->
+        <div id="loading-status">LINE 系統連線中...</div>
 
-        <div id="mainContent" class="flex-1 flex flex-col p-6">
+        <!-- Main Form Section -->
+        <div id="booking-form-section">
             
-            <!-- 標題與頭像區 -->
-            <div class="text-center mb-6">
-                <!-- 預留顯示頭像的地方 -->
-                <img id="userAvatar" src="" class="hidden w-16 h-16 rounded-full mx-auto mb-2 border-2 border-green-100 shadow-sm object-cover">
-                <h1 class="text-2xl font-bold text-gray-800 mb-1">Stelle studio</h1>
-                <p class="text-sm text-gray-500">蒔黛美學 線上預約</p>
-                <!-- 隱藏的 UserID 欄位，用來傳送給後端 -->
-                <input type="hidden" id="hiddenUserId">
-            </div>
+            <!-- User Profile -->
+            <img id="userPicture" class="user-avatar" src="" alt="User">
+            <p class="greeting">您好，<span id="userName"></span></p>
 
-            <!-- 預約表單 -->
-            <div class="space-y-5 mb-6">
+            <!-- Form -->
+            <form id="bookingForm" onsubmit="event.preventDefault(); submitBooking();">
                 
-                <div>
-                    <label for="inputName" class="block text-sm font-medium text-gray-700 mb-1">
-                        <i class="fa-solid fa-user text-gray-400 mr-1"></i> 您的姓名
-                    </label>
-                    <input type="text" id="inputName" placeholder="請輸入姓名" class="w-full border-gray-300 rounded-lg border p-3 outline-none transition-all placeholder-gray-400 text-gray-700">
+                <div class="form-group">
+                    <label>預約姓名</label>
+                    <input type="text" id="inputName" placeholder="請輸入姓名" required>
                 </div>
 
-                <div>
-                    <label for="inputPhone" class="block text-sm font-medium text-gray-700 mb-1">
-                        <i class="fa-solid fa-phone text-gray-400 mr-1"></i> 聯絡電話
-                    </label>
-                    <input type="tel" id="inputPhone" placeholder="09xx-xxx-xxx" class="w-full border-gray-300 rounded-lg border p-3 outline-none transition-all placeholder-gray-400 text-gray-700">
+                <div class="form-group">
+                    <label>聯絡電話</label>
+                    <input type="tel" id="inputPhone" placeholder="09xx-xxx-xxx" required>
                 </div>
 
-                <div>
-                    <label for="serviceSelect" class="block text-sm font-medium text-gray-700 mb-1">
-                        <i class="fa-solid fa-wand-magic-sparkles text-gray-400 mr-1"></i> 選擇服務項目
-                    </label>
-                    <select id="serviceSelect" class="w-full border-gray-300 rounded-lg border p-3 outline-none transition-all bg-white text-gray-700 cursor-pointer">
+                <div class="form-group">
+                    <label>服務項目</label>
+                    <select id="inputService">
                         <option value="粉黛柔霧眉 $7,990">粉黛柔霧眉 $7,990</option>
                         <option value="立體野生眉 $9,990">立體野生眉 $9,990</option>
                         <option value="野生粉黛眉 $13,990">野生粉黛眉 $13,990</option>
@@ -97,169 +236,152 @@
                         <option value="韓式睫毛管理 $1,290">韓式睫毛管理 $1,290</option>
                         <option value="單次微創洗眉 $1,990">單次微創洗眉 $1,990</option>
                         <option value="無限包套優惠 $8,990">無限包套優惠 $8,990</option>
+                        <option value="－">－</option>
+                        <option value="3 個月內補色 $0">3 個月內補色 $0</option>
+                        <option value="超過 3 個月補色 $半價">超過 3 個月補色 $半價</option>
                     </select>
                 </div>
 
-                <div>
-                    <label for="inputDate" class="block text-sm font-medium text-gray-700 mb-1">
-                        <i class="fa-solid fa-clock text-gray-400 mr-1"></i> 期望預約時間
-                    </label>
-                    <input type="datetime-local" id="inputDate" class="w-full border-gray-300 rounded-lg border p-3 outline-none transition-all placeholder-gray-400 text-gray-700 bg-white">
+                <div class="form-group">
+                    <label>期望日期</label>
+                    <input type="date" id="inputDate" required>
                 </div>
 
-            </div>
+                <div class="form-group">
+                    <label>期望時間</label>
+                    <select id="inputTime" required>
+                        <!-- JS 會自動產生選項 -->
+                    </select>
+                </div>
 
-            <div class="mb-4 bg-orange-50 border border-orange-200 rounded-lg p-3 text-center">
-                <p class="text-sm text-orange-700 font-bold">
-                    <i class="fa-solid fa-circle-exclamation mr-1"></i> 
-                    注意：收到「預約成功」訊息才是完成預約喔！
-                </p>
-            </div>
+                <button type="submit" class="btn-submit">確認預約</button>
 
-            <div class="mt-auto">
-                <button id="submitBtn" onclick="submitBooking()" class="btn-primary w-full text-white font-bold py-3 px-4 rounded-xl shadow-lg flex items-center justify-center gap-2">
-                    <i class="fa-solid fa-paper-plane"></i>
-                    送出預約
-                </button>
-            </div>
-            
-        </div>
-    </div>
-
-    <!-- 自定義彈跳視窗 -->
-    <div id="customModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-[60] flex items-center justify-center p-4">
-        <div class="bg-white rounded-xl shadow-2xl max-w-sm w-full p-6 text-center fade-in">
-            <div id="modalIcon" class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <i class="fa-solid fa-check text-2xl text-green-500"></i>
-            </div>
-            <h3 id="modalTitle" class="text-xl font-bold text-gray-800 mb-2">預約資訊已送出</h3>
-            
-            <div id="modalContent" class="text-left bg-gray-50 p-4 rounded-lg mb-4 text-sm text-gray-600 border border-gray-100">
-                <p class="mb-1"><span class="font-bold">姓名：</span> <span id="modalName"></span></p>
-                <p class="mb-1"><span class="font-bold">電話：</span> <span id="modalPhone"></span></p>
-                <p class="mb-1"><span class="font-bold">時間：</span> <span id="modalDate"></span></p>
-                <p class="mb-0"><span class="font-bold">項目：</span> <span id="modalServiceName" class="text-green-600 font-bold"></span></p>
-            </div>
-
-            <p class="text-xs text-gray-400 mb-4">(我們將盡快與您聯繫確認)</p>
-            <button onclick="closeModal()" class="w-full bg-gray-800 text-white font-medium py-2.5 rounded-lg hover:bg-gray-900 transition-colors">
-                關閉視窗
-            </button>
+                <div class="debug-info">User ID: <span id="userIdText"></span></div>
+            </form>
         </div>
     </div>
 
     <script>
-        // 2. LIFF 初始化設定
+        // ------------------------------------------------
+        // 1. 設定與工具函數
+        // ------------------------------------------------
+        
+        // ★★★ 請務必在此填入您的 LIFF ID ★★★
         const YOUR_LIFF_ID = '2008676848-7eEjQ8U9'; 
 
-        // DOM 元素
-        const loadingMask = document.getElementById('loadingMask');
-        const userAvatar = document.getElementById('userAvatar');
-        const inputName = document.getElementById('inputName');
-        const hiddenUserId = document.getElementById('hiddenUserId');
-        const customModal = document.getElementById('customModal');
-        const modalName = document.getElementById('modalName');
-        const modalPhone = document.getElementById('modalPhone');
-        const modalServiceName = document.getElementById('modalServiceName');
-        const modalDate = document.getElementById('modalDate');
-        const submitBtn = document.getElementById('submitBtn');
+        // 初始化時間選單 (10:00 - 20:00)
+        function initTimeSlots() {
+            const select = document.getElementById('inputTime');
+            const startHour = 10; 
+            const endHour = 20;   
+            
+            for (let h = startHour; h <= endHour; h++) {
+                let hourStr = h.toString().padStart(2, '0');
+                select.add(new Option(`${hourStr}:00`, `${hourStr}:00`));
+                if (h !== endHour) {
+                    select.add(new Option(`${hourStr}:30`, `${hourStr}:30`));
+                }
+            }
+        }
 
-        // 頁面載入後執行初始化
+        // ------------------------------------------------
+        // 2. LIFF 初始化邏輯
+        // ------------------------------------------------
+        
         window.onload = function() {
+            initTimeSlots(); // 產生時間選項
+            
+            // 預設日期為明天
+            const tomorrow = new Date();
+            tomorrow.setDate(tomorrow.getDate() + 1);
+            const yyyy = tomorrow.getFullYear();
+            const mm = String(tomorrow.getMonth() + 1).padStart(2, '0');
+            const dd = String(tomorrow.getDate()).padStart(2, '0');
+            document.getElementById('inputDate').value = `${yyyy}-${mm}-${dd}`;
+
+            // 啟動 LIFF
             initializeLiff();
         };
 
         function initializeLiff() {
             liff.init({ liffId: YOUR_LIFF_ID })
                 .then(() => {
+                    // 初始化成功
                     if (!liff.isLoggedIn()) {
-                        liff.login();
+                        liff.login(); // 沒登入就登入
                     } else {
-                        // 取得用戶資料並填入
-                        liff.getProfile()
-                            .then(profile => {
-                                // 顯示頭像
-                                if(profile.pictureUrl) {
-                                    userAvatar.src = profile.pictureUrl;
-                                    userAvatar.classList.remove('hidden');
-                                }
-                                // 自動填入暱稱
-                                inputName.value = profile.displayName;
-                                // 儲存 UserID (重要！之後傳給後端用)
-                                hiddenUserId.value = profile.userId;
-                                
-                                // 移除遮罩
-                                loadingMask.style.display = 'none';
-                            })
-                            .catch(err => {
-                                console.error('Profile Error:', err);
-                                loadingMask.style.display = 'none';
-                            });
+                        getUserProfile(); // 登入後抓資料
                     }
                 })
                 .catch((err) => {
-                    // 如果是在非 LINE 環境（如電腦瀏覽器測試），也移除遮罩讓你能操作
-                    console.log('LIFF Initialization failed (Dev mode?)', err);
-                    loadingMask.style.display = 'none';
+                    document.getElementById('loading-status').innerText = "初始化失敗，請檢查 LIFF ID";
+                    console.error('LIFF Init failed', err);
                 });
         }
 
-        function submitBooking() {
-            const name = document.getElementById('inputName').value.trim();
-            const phone = document.getElementById('inputPhone').value.trim();
-            const service = document.getElementById('serviceSelect').value;
-            const date = document.getElementById('inputDate').value;
-            const userId = document.getElementById('hiddenUserId').value; // 記得檢查 HTML 有沒有這個 hidden input
+        // ------------------------------------------------
+        // 3. 取得用戶資料
+        // ------------------------------------------------
 
-            // 確保有 UserID (如果是測試模式可能沒有)
-            if (!name || !phone || !date) {
-                alert("請完整填寫姓名、電話與期望預約時間喔！");
+        function getUserProfile() {
+            liff.getProfile().then(profile => {
+                // 隱藏 Loading，顯示主畫面
+                document.getElementById('loading-status').style.display = 'none';
+                document.getElementById('booking-form-section').style.display = 'block';
+                
+                // 填入資料
+                document.getElementById('userName').innerText = profile.displayName;
+                document.getElementById('inputName').value = profile.displayName; // 自動帶入姓名
+                document.getElementById('userIdText').innerText = profile.userId;
+
+                // 處理大頭貼
+                const img = document.getElementById('userPicture');
+                if (profile.pictureUrl) {
+                    img.src = profile.pictureUrl;
+                } else {
+                    img.src = "https://via.placeholder.com/80/EBE5E0/8C837B?text=Guest"; 
+                }
+            }).catch(err => {
+                console.error('Profile Error:', err);
+            });
+        }
+
+        // ------------------------------------------------
+        // 4. 送出預約 (串接 LINE 訊息)
+        // ------------------------------------------------
+
+        function submitBooking() {
+            const name = document.getElementById('inputName').value;
+            const phone = document.getElementById('inputPhone').value;
+            const service = document.getElementById('inputService').value;
+            const date = document.getElementById('inputDate').value;
+            const time = document.getElementById('inputTime').value;
+
+            if(!name || !phone || !date) {
+                alert("請填寫完整資訊");
                 return;
             }
-            
-            // 鎖定按鈕
-            const submitBtn = document.getElementById('submitBtn');
-            submitBtn.disabled = true;
-            submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> 資料傳送中...';
 
-            // ★★★ 請將這裡換成妳剛剛部署 GAS 拿到的網址 ★★★
-            const GAS_URL = 'https://script.google.com/macros/s/AKfycbxQYTqYjXEz1LcG4n8dPTInckOTSl-Ty0CNAk8qGyufcVHiCz_Zt74xBbCEDFr0XRyMvg/exec'; 
+            // 組合預約訊息
+            const messageText = `【新預約通知】\n姓名：${name}\n電話：${phone}\n項目：${service}\n時間：${date} ${time}`;
 
-            // 使用 fetch 發送資料
-            // mode: 'no-cors' 是關鍵，因為 GAS 不會回傳標準 CORS header
-            fetch(GAS_URL, {
-                method: 'POST',
-                body: JSON.stringify({
-                    userId: userId,
-                    name: name,
-                    phone: phone,
-                    service: service,
-                    date: date
-                }),
-                headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-                mode: 'no-cors' 
-            })
-            .then(() => {
-                // 成功後顯示模態框 (因為 no-cors 模式無法讀取回傳值，我們假設發送即成功)
-                document.getElementById('modalName').innerText = name;
-                document.getElementById('modalPhone').innerText = phone;
-                document.getElementById('modalServiceName').innerText = service;
-                document.getElementById('modalDate').innerText = date.replace('T', ' ');
-                
-                document.getElementById('customModal').classList.remove('hidden');
-                
-                // 按鈕復原
-                submitBtn.disabled = false;
-                submitBtn.innerHTML = '<i class="fa-solid fa-paper-plane"></i> 送出預約';
-            })
-            .catch(error => {
-                alert("發生錯誤，請稍後再試：" + error);
-                submitBtn.disabled = false;
-                submitBtn.innerHTML = '重新送出';
-            });
+            // 檢查是否在 LINE Client 內，並嘗試發送訊息
+            if (liff.isInClient()) {
+                liff.sendMessages([{
+                    type: 'text',
+                    text: messageText
+                }]).then(() => {
+                    alert(`預約成功！\n期待在 ${date} ${time} 見到您。`);
+                    liff.closeWindow(); // 關閉視窗
+                }).catch((err) => {
+                    console.error('Send Error:', err);
+                    alert("預約資料已送出！(無法自動發送 LINE 訊息，請手動確認)");
+                });
+            } else {
+                // 如果是在外部瀏覽器 (例如 Chrome) 開啟，無法使用 sendMessages
+                alert("這是外部瀏覽器預覽模式：\n" + messageText);
+            }
         }
     </script>
 </body>
 </html>
-
-
