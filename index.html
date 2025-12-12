@@ -492,7 +492,15 @@
             submitBtn.disabled = true;
             submitBtn.innerText = "資料傳送中...";
 
-            const data = { name, phone, service, date, time, userId };
+            const data = { 
+                name, 
+                phone, 
+                service, 
+                date, 
+                time, 
+                userId,
+                secret: "Stelle2025Secure" // 必須跟後端設定的一模一樣
+            };
 
             // ★★★ 注意：這裡務必確保網址正確 ★★★
             if (GOOGLE_SCRIPT_URL && GOOGLE_SCRIPT_URL.startsWith('https://script.google.com')) {
@@ -539,3 +547,4 @@
     </script>
 </body>
 </html>
+
