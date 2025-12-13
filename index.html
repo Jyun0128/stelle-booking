@@ -8,6 +8,7 @@
     <script charset="utf-8" src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
     
     <style>
+        /* ... 樣式區保持不變 ... */
         :root { --primary-brown: #8D6E63; --bg-color: #F8F6F3; --card-white: #FFFFFF; --text-dark: #5D4037; --text-light: #8D6E63; --accent-bar: #795548; --input-bg: #FCFBF9; --input-border: #E8E0DD; }
         * { box-sizing: border-box; }
         body { font-family: 'Noto Sans TC', sans-serif; background-color: var(--bg-color); color: var(--text-dark); margin: 0; padding: 20px; display: flex; justify-content: center; min-height: 100vh; }
@@ -46,7 +47,6 @@
         .btn-modal-close { background-color: var(--primary-brown); color: white; border: none; padding: 12px 0; width: 100%; border-radius: 6px; cursor: pointer; }
         .reminder-text { font-size: 13px; color: var(--primary-brown); margin-top: 12px; margin-bottom: 5px; font-weight: 500; }
 
-        /* 新增：動態服務選單樣式 */
         .service-row { display: flex; gap: 8px; margin-bottom: 10px; align-items: center; }
         .service-select { flex: 1; }
         .btn-add { background-color: #EFEBE9; color: var(--primary-brown); border: 1px dashed var(--primary-brown); border-radius: 8px; padding: 10px; width: 100%; cursor: pointer; font-size: 14px; transition: 0.3s; margin-bottom: 10px; }
@@ -67,11 +67,10 @@
                 <div class="form-group"><label>預約姓名</label><input type="text" id="inputName" placeholder="請輸入姓名" required></div>
                 <div class="form-group"><label>聯絡電話</label><input type="tel" id="inputPhone" placeholder="09xx-xxx-xxx" required></div>
                 
-                <!-- 動態服務項目 -->
                 <div class="form-group">
                     <label>服務項目</label>
                     <div id="serviceContainer">
-                        <!-- JS 會自動產生第一行 -->
+                        <!-- JS 自動產生 -->
                     </div>
                     <button type="button" class="btn-add" id="btnAddService" onclick="addServiceRow()">+ 新增服務項目</button>
                 </div>
@@ -122,7 +121,6 @@
         // ★★★ 請務必確認這裡的網址是您最新的 Apps Script 部署網址 ★★★
         const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzFZMsvRXC1Muvh6J2vcOTErZPpYPJgTezDEoeDPUDf1bQQgVkzbdJPNQ_Pe9PXEdSRQA/exec'; 
 
-        // 服務項目清單 (JS 陣列)
         const serviceOptions = [
             "粉黛柔霧眉 $7,990",
             "立體野生眉 $9,990",
@@ -151,6 +149,9 @@
         function createServiceSelect(value) {
             const select = document.createElement('select');
             select.className = 'service-select';
+            // ★ 當選擇改變時，更新所有選單的可選狀態 ★
+            select.onchange = updateAvailableOptions; 
+            
             serviceOptions.forEach(opt => {
                 const option = new Option(opt, opt);
                 if (value && opt === value) option.selected = true;
@@ -167,20 +168,51 @@
             const select = createServiceSelect(selectedValue);
             row.appendChild(select);
 
-            // 如果不是第一行，添加刪除按鈕
             if (container.children.length > 0) {
                 const removeBtn = document.createElement('button');
                 removeBtn.type = 'button';
                 removeBtn.className = 'btn-remove';
                 removeBtn.innerHTML = '×';
-                removeBtn.onclick = function() { container.removeChild(row); };
+                removeBtn.onclick = function() { 
+                    container.removeChild(row); 
+                    // ★ 刪除後也要更新選項狀態 ★
+                    updateAvailableOptions();
+                };
                 row.appendChild(removeBtn);
             }
 
             container.appendChild(row);
+            // ★ 新增後更新選項狀態 ★
+            updateAvailableOptions();
         }
 
-        // 讀取所有選中的服務，合併成字串
+        // ★★★ 核心邏輯：檢查並鎖定已選項目 ★★★
+        function updateAvailableOptions() {
+            const selects = document.querySelectorAll('.service-select');
+            const selectedValues = [];
+            
+            // 1. 收集目前所有已選的值
+            selects.forEach(sel => {
+                if (sel.value) selectedValues.push(sel.value);
+            });
+
+            // 2. 遍歷所有下拉選單，隱藏/鎖定已被其他選單選走的項目
+            selects.forEach(sel => {
+                const myValue = sel.value; // 自己當前選的值
+                for (let i = 0; i < sel.options.length; i++) {
+                    const opt = sel.options[i];
+                    // 如果這個選項在「已選清單」中，且不是「我自己當前選的」，就鎖起來
+                    if (selectedValues.includes(opt.value) && opt.value !== myValue) {
+                        opt.disabled = true; // 變灰
+                        opt.style.display = 'none'; // 嘗試隱藏 (在部分手機有效)
+                    } else {
+                        opt.disabled = false;
+                        opt.style.display = ''; // 恢復顯示
+                    }
+                }
+            });
+        }
+
         function getSelectedServices() {
             const selects = document.querySelectorAll('.service-select');
             const values = [];
@@ -245,17 +277,14 @@
 
                 currentParams = getQueryParams();
                 
-                // 無論是哪種模式，先清空並初始化服務選單
                 const container = document.getElementById('serviceContainer');
                 container.innerHTML = '';
 
                 if (currentParams.mode === 'view') {
-                    // --- 顯示詳情模式 ---
                     document.getElementById('booking-form-section').style.display = 'none';
                     document.getElementById('booking-details-section').style.display = 'block';
 
                     document.getElementById('viewName').innerText = currentParams.name || profile.displayName;
-                    // 將 + 號換行顯示，比較美觀
                     document.getElementById('viewService').innerText = (currentParams.service || "未指定").replace(/ \+ /g, "\n");
                     document.getElementById('viewLocation').innerText = currentParams.location || "未指定";
                     document.getElementById('viewTime').innerText = currentParams.time || "未指定";
@@ -263,7 +292,6 @@
                     if (currentParams.status === 'SUCCESS') document.getElementById('btn-modify-booking').style.display = 'none';
                     else document.getElementById('btn-modify-booking').style.display = 'inline-block';
 
-                    // 預填表單 (解析多重服務)
                     document.getElementById('inputName').value = currentParams.name || profile.displayName;
                     
                     if (currentParams.service) {
@@ -281,10 +309,9 @@
                         document.getElementById('inputTime').value = parts[1];
                     }
                 } else {
-                    // --- 正常預約模式 ---
                     document.getElementById('booking-form-section').style.display = 'block';
                     document.getElementById('booking-details-section').style.display = 'none';
-                    addServiceRow(); // 預設新增一行
+                    addServiceRow(); 
                     enableAllFields();
                 }
             }).catch(err => console.error('Profile Error:', err));
@@ -327,7 +354,6 @@
         function submitBooking() {
             const name = document.getElementById('inputName').value;
             const phone = document.getElementById('inputPhone').value;
-            // 取得多重服務
             const service = getSelectedServices(); 
             const location = document.getElementById('inputLocation').value;
             const date = document.getElementById('inputDate').value;
@@ -385,7 +411,6 @@
 
         function showCustomModal(name, service, location, date, time) {
             document.getElementById('modalName').innerText = name;
-            // 彈窗中也換行顯示
             document.getElementById('modalService').innerText = service.replace(/ \+ /g, "\n");
             document.getElementById('modalLocation').innerText = location;
             document.getElementById('modalDate').innerText = date;
