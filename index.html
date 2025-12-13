@@ -139,7 +139,7 @@
             text-align-last: center; 
         }
 
-        /* ★★★ 唯讀(不可修改)欄位的樣式 ★★★ */
+        /* 唯讀(不可修改)欄位的樣式 */
         input:disabled, select:disabled {
             background-color: #EFEBE9; /* 淺灰色背景 */
             color: #8D6E63; /* 文字稍微變淡 */
@@ -283,6 +283,15 @@
                     </select>
                 </div>
 
+                <!-- ★★★ 新增：據點選擇 ★★★ -->
+                <div class="form-group">
+                    <label>選擇據點</label>
+                    <select id="inputLocation">
+                        <option value="桃園店 (桃園區南海街)">桃園店 (桃園區南海街)</option>
+                        <option value="中壢店 (中壢區後寮一路)">中壢店 (中壢區後寮一路)</option>
+                    </select>
+                </div>
+
                 <div class="form-group">
                     <label>期望日期</label>
                     <input type="date" id="inputDate" required>
@@ -314,13 +323,17 @@
                     <span class="d-label">服務項目</span>
                     <span class="d-value" id="viewService"></span>
                 </div>
+                <!-- ★★★ 新增：據點顯示 ★★★ -->
+                <div class="details-row">
+                    <span class="d-label">據點</span>
+                    <span class="d-value" id="viewLocation"></span>
+                </div>
                 <div class="details-row">
                     <span class="d-label">預約時間</span>
                     <span class="d-value" id="viewTime"></span>
                 </div>
             </div>
 
-            <!-- ★★★ 新增 ID 方便控制顯示/隱藏 ★★★ -->
             <button id="btn-modify-booking" onclick="switchToEditMode()" class="btn-submit">修改預約時段</button>
             <button onclick="liff.closeWindow()" class="btn-submit btn-outline">關閉視窗</button>
         </div>
@@ -333,6 +346,8 @@
             <div class="details-card" style="background:var(--bg-color); border:none;">
                 <div class="details-row"><span class="d-label">姓名：</span><span class="d-value" id="modalName"></span></div>
                 <div class="details-row"><span class="d-label">項目：</span><span class="d-value" id="modalService"></span></div>
+                <!-- ★★★ 新增：據點顯示 ★★★ -->
+                <div class="details-row"><span class="d-label">據點：</span><span class="d-value" id="modalLocation"></span></div>
                 <div class="details-row"><span class="d-label">日期：</span><span class="d-value" id="modalDate"></span></div>
                 <div class="details-row"><span class="d-label">時間：</span><span class="d-value" id="modalTime"></span></div>
             </div>
@@ -355,16 +370,16 @@
             }
         }
 
-        // 解析網址參數的工具
         function getQueryParams() {
             const params = new URLSearchParams(window.location.search);
             return {
                 mode: params.get('mode'),
                 name: params.get('name'),
                 service: params.get('service'),
+                location: params.get('location'), // ★ 讀取據點參數
                 time: params.get('time'),
                 phone: params.get('phone'),
-                status: params.get('status') // ★★★ 新增：讀取狀態參數 ★★★
+                status: params.get('status')
             };
         }
 
@@ -373,7 +388,7 @@
         window.onload = function() {
             initTimeSlots();
             
-            // ★★★ 日期限制：只能選明天以後 ★★★
+            // 日期限制與防呆
             const today = new Date();
             const tomorrow = new Date(today);
             tomorrow.setDate(today.getDate() + 1);
@@ -385,13 +400,12 @@
             
             const dateInput = document.getElementById('inputDate');
             dateInput.value = tomorrowStr; 
-            dateInput.min = tomorrowStr;   // 限制最小日期
+            dateInput.min = tomorrowStr;   
 
-            // ★★★ 新增：JS 強制檢查 (針對 iOS 不支援 min 屬性的解決方案) ★★★
             dateInput.addEventListener('change', function() {
                 if (this.value < tomorrowStr) {
                     alert("請選擇明天以後的日期");
-                    this.value = tomorrowStr; // 強制重置為明天
+                    this.value = tomorrowStr; 
                 }
             });
 
@@ -414,7 +428,6 @@
                 });
         }
 
-        // --- 核心邏輯：決定顯示表單還是詳情 ---
         function handlePageLogic() {
             liff.getProfile().then(profile => {
                 document.getElementById('userName').innerText = profile.displayName;
@@ -423,7 +436,6 @@
                 const img = document.getElementById('userPicture');
                 img.src = profile.pictureUrl ? profile.pictureUrl : "https://via.placeholder.com/80";
 
-                // 2. 檢查網址是否有參數
                 currentParams = getQueryParams();
                 
                 if (currentParams.mode === 'view') {
@@ -431,65 +443,60 @@
                     document.getElementById('booking-form-section').style.display = 'none';
                     document.getElementById('booking-details-section').style.display = 'block';
 
-                    // 填入詳情資料
                     document.getElementById('viewName').innerText = currentParams.name || profile.displayName;
                     document.getElementById('viewService').innerText = currentParams.service || "未指定";
+                    document.getElementById('viewLocation').innerText = currentParams.location || "未指定"; // ★
                     document.getElementById('viewTime').innerText = currentParams.time || "未指定";
 
-                    // ★★★ 若狀態為 SUCCESS (預約成功)，則隱藏修改按鈕 ★★★
                     if (currentParams.status === 'SUCCESS') {
                         document.getElementById('btn-modify-booking').style.display = 'none';
                     } else {
-                        // 確保其他狀態 (PENDING, CANCELLED) 是顯示的
                         document.getElementById('btn-modify-booking').style.display = 'inline-block';
                     }
 
-                    // 在背景先將表單填好，以免切換過去是空白
+                    // 預填表單
                     document.getElementById('inputName').value = currentParams.name || profile.displayName;
                     if(currentParams.service) document.getElementById('inputService').value = currentParams.service;
-                    if(currentParams.phone) document.getElementById('inputPhone').value = currentParams.phone; // 填入電話
+                    if(currentParams.location) document.getElementById('inputLocation').value = currentParams.location; // ★ 預填據點
+                    if(currentParams.phone) document.getElementById('inputPhone').value = currentParams.phone; 
                     
                     if(currentParams.time && currentParams.time.includes(' ')) {
                         const parts = currentParams.time.split(' ');
-                        const savedDate = parts[0].replace(/\//g, '-');
-                        
-                        // 嘗試填入舊日期
-                        document.getElementById('inputDate').value = savedDate;
+                        document.getElementById('inputDate').value = parts[0].replace(/\//g, '-');
                         document.getElementById('inputTime').value = parts[1];
                     }
                 } else {
-                    // --- 正常預約模式 (全部可編輯) ---
+                    // --- 正常預約模式 ---
                     document.getElementById('booking-form-section').style.display = 'block';
                     document.getElementById('booking-details-section').style.display = 'none';
-                    // 確保欄位是開啟的
                     enableAllFields();
                 }
 
             }).catch(err => console.error('Profile Error:', err));
         }
 
-        // --- 切換到修改模式 (鎖定舊資料) ---
         function switchToEditMode() {
             document.getElementById('booking-details-section').style.display = 'none';
             document.getElementById('booking-form-section').style.display = 'block';
             
-            // ★★★ 關鍵：鎖定不可修改的欄位 ★★★
+            // 鎖定欄位
             document.getElementById('inputName').disabled = true;
             document.getElementById('inputPhone').disabled = true;
             document.getElementById('inputService').disabled = true;
+            document.getElementById('inputLocation').disabled = true; // ★ 鎖定據點
             
-            // 確保日期時間是可以修改的
+            // 開放欄位
             document.getElementById('inputDate').disabled = false;
             document.getElementById('inputTime').disabled = false;
 
             document.getElementById('submitBtn').innerText = "確認修改預約";
         }
 
-        // 輔助：開啟所有欄位 (給一般預約用)
         function enableAllFields() {
             document.getElementById('inputName').disabled = false;
             document.getElementById('inputPhone').disabled = false;
             document.getElementById('inputService').disabled = false;
+            document.getElementById('inputLocation').disabled = false; // ★
             document.getElementById('inputDate').disabled = false;
             document.getElementById('inputTime').disabled = false;
             document.getElementById('submitBtn').innerText = "確認預約";
@@ -499,13 +506,13 @@
             const name = document.getElementById('inputName').value;
             const phone = document.getElementById('inputPhone').value;
             const service = document.getElementById('inputService').value;
+            const location = document.getElementById('inputLocation').value; // ★ 取得據點
             const date = document.getElementById('inputDate').value;
             const time = document.getElementById('inputTime').value;
             const userId = document.getElementById('userIdText').innerText;
 
             if(!name || !phone || !date) { alert("請填寫完整資訊"); return; }
 
-            // ★★★ iOS 日期防呆：提交時再檢查一次 ★★★
             const today = new Date();
             today.setDate(today.getDate() + 1);
             const tomorrowStr = today.toISOString().split('T')[0];
@@ -514,7 +521,6 @@
                 return;
             }
 
-            // ★★★ UserID 檢查 ★★★
             if (!userId) {
                 alert("系統尚未讀取到您的 UserID，請稍候再試或重新整理頁面。");
                 return;
@@ -524,18 +530,18 @@
             submitBtn.disabled = true;
             submitBtn.innerText = "資料傳送中...";
 
-            // ★★★ 包含 secret ★★★
+            // ★ 包含 location 與 secret
             const data = { 
                 name, 
                 phone, 
-                service, 
+                service,
+                location, // ★
                 date, 
                 time, 
                 userId,
                 secret: "Stelle2025Secure" 
             };
 
-            // 1. 發送後端請求
             if (GOOGLE_SCRIPT_URL && GOOGLE_SCRIPT_URL.startsWith('https://script.google.com')) {
                 fetch(GOOGLE_SCRIPT_URL, {
                     method: 'POST',
@@ -549,7 +555,6 @@
                 return;
             }
 
-            // 2. ★★★ 自動傳送訊息「我已送出預約」 (含錯誤捕捉) ★★★
             if (liff.isInClient()) {
                 liff.sendMessages([{ 
                     type: 'text', 
@@ -557,13 +562,11 @@
                 }]).then(() => {
                     console.log("LINE 訊息發送成功");
                 }).catch((err) => {
-                    console.error("LINE 訊息發送失敗:", err);
-                    // 錯誤提示：讓使用者知道為什麼訊息發不出去
                     alert("LINE 訊息發送失敗！\n原因：" + err.message + "\n請確認您是否允許了傳訊權限。");
                 });
             }
 
-            showCustomModal(name, service, date, time);
+            showCustomModal(name, service, location, date, time); // ★
             submitBtn.disabled = false;
             
             if(currentParams.mode === 'view') {
@@ -573,9 +576,10 @@
             }
         }
 
-        function showCustomModal(name, service, date, time) {
+        function showCustomModal(name, service, location, date, time) {
             document.getElementById('modalName').innerText = name;
             document.getElementById('modalService').innerText = service;
+            document.getElementById('modalLocation').innerText = location; // ★
             document.getElementById('modalDate').innerText = date;
             document.getElementById('modalTime').innerText = time;
             document.getElementById('customModal').style.display = 'flex';
