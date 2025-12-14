@@ -141,6 +141,29 @@
             "包套除色回訪 $0"
         ];
 
+        // ★★★ 定義互斥群組 ★★★
+        const conflictGroups = [
+            // 群組 1: 眉毛與除色相關 (只能選一個)
+            [
+                "粉黛柔霧眉 $7,990",
+                "立體野生眉 $9,990",
+                "野生粉黛眉 $13,990",
+                "單次微創洗眉 $1,990",
+                "無限包套優惠 $8,990",
+                "3 個月內補色 $0",
+                "超過 3 個月補色 $半價",
+                "包套除色回訪 $0"
+            ],
+            // 群組 2: 唇部相關 (只能選一個)
+            [
+                "輕染潤霧唇 $13,990",
+                "還原潤色唇 $16,990",
+                "唇淡色還原 $5,990",
+                "3 個月內補色 $0",
+                "超過 3 個月補色 $半價"
+            ]
+        ];
+
         function initTimeSlots() {
             const select = document.getElementById('inputTime');
             const startHour = 10; const endHour = 20;   
@@ -168,6 +191,9 @@
 
             serviceOptions.forEach(opt => {
                 const option = new Option(opt, opt);
+                if (opt === "－") {
+                    option.disabled = true; // 分隔線不可選
+                }
                 if (value && opt === value) option.selected = true;
                 select.add(option);
             });
@@ -190,40 +216,63 @@
                 removeBtn.innerHTML = '×';
                 removeBtn.onclick = function() { 
                     container.removeChild(row); 
+                    // ★ 刪除後也要更新選項狀態 ★
                     updateAvailableOptions();
                 };
                 row.appendChild(removeBtn);
             }
 
             container.appendChild(row);
+            // ★ 新增後更新選項狀態 ★
             updateAvailableOptions();
         }
 
-        // ★★★ 核心邏輯：檢查並鎖定已選項目 (修正版) ★★★
+        // ★★★ 核心邏輯：檢查並鎖定已選項目 (升級版) ★★★
         function updateAvailableOptions() {
             const selects = document.querySelectorAll('.service-select');
-            const selectedValues = [];
             
-            // 收集已選值 (不包含空白的 placeholder)
-            selects.forEach(sel => {
-                if (sel.value) selectedValues.push(sel.value);
-            });
+            // 收集目前所有已選的值 (不含空白)
+            const allSelectedValues = Array.from(selects).map(s => s.value).filter(v => v);
 
-            // 遍歷鎖定
+            // 遍歷每一個選單來決定哪些選項該鎖定
             selects.forEach(sel => {
-                const myValue = sel.value; 
+                const myValue = sel.value; // 自己當前選的值
+
                 for (let i = 0; i < sel.options.length; i++) {
                     const opt = sel.options[i];
                     
-                    // ★★★ 2. 跳過空白的 placeholder 選項，不對其做鎖定操作 ★★★
-                    if (!opt.value) continue;
+                    // 跳過空白 placeholder 和分隔線
+                    if (!opt.value || opt.value === "－") continue;
 
-                    if (selectedValues.includes(opt.value) && opt.value !== myValue) {
+                    let shouldDisable = false;
+
+                    // 規則 1: 已經被選走的，不能再選 (除非是自己選的)
+                    if (allSelectedValues.includes(opt.value) && opt.value !== myValue) {
+                        shouldDisable = true;
+                    }
+
+                    // 規則 2: 檢查互斥群組
+                    if (!shouldDisable) {
+                        for (const group of conflictGroups) {
+                            // 如果這個選項屬於某個群組
+                            if (group.includes(opt.value)) {
+                                // 檢查已選項目中，是否包含「同群組」的其他項目 (排除自己)
+                                const conflictFound = allSelectedValues.some(val => val !== myValue && group.includes(val));
+                                if (conflictFound) {
+                                    shouldDisable = true;
+                                    break; // 只要撞到一個規則就鎖定，不用繼續查
+                                }
+                            }
+                        }
+                    }
+
+                    // 執行鎖定或解鎖
+                    if (shouldDisable) {
                         opt.disabled = true; 
-                        opt.style.display = 'none'; 
+                        opt.style.display = 'none'; // 隱藏
                     } else {
                         opt.disabled = false;
-                        opt.style.display = ''; 
+                        opt.style.display = ''; // 顯示
                     }
                 }
             });
@@ -300,6 +349,7 @@
                 container.innerHTML = '';
 
                 if (currentParams.mode === 'view') {
+                    // --- 顯示詳情模式 ---
                     document.getElementById('booking-form-section').style.display = 'none';
                     document.getElementById('booking-details-section').style.display = 'block';
 
@@ -328,6 +378,7 @@
                         document.getElementById('inputTime').value = parts[1];
                     }
                 } else {
+                    // --- 正常預約模式 ---
                     document.getElementById('booking-form-section').style.display = 'block';
                     document.getElementById('booking-details-section').style.display = 'none';
                     addServiceRow(); 
@@ -378,7 +429,6 @@
             const time = document.getElementById('inputTime').value;
             const userId = document.getElementById('userIdText').innerText;
 
-            // ★★★ 4. 加入 service 檢查 ★★★
             if(!name || !phone || !date || !service) { alert("請填寫完整資訊 (請選擇服務項目)"); return; }
 
             const today = new Date();
