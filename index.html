@@ -49,6 +49,8 @@
 
         .service-row { display: flex; gap: 8px; margin-bottom: 10px; align-items: center; }
         .service-select { flex: 1; }
+        /* 讓 placeholder 顏色變淡 (選擇性) */
+        .service-select:invalid { color: #D7CCC8; }
         .btn-add { background-color: #EFEBE9; color: var(--primary-brown); border: 1px dashed var(--primary-brown); border-radius: 8px; padding: 10px; width: 100%; cursor: pointer; font-size: 14px; transition: 0.3s; margin-bottom: 10px; }
         .btn-add:hover { background-color: #FDF3F0; }
         .btn-remove { background: none; border: none; color: #F44336; font-size: 20px; cursor: pointer; padding: 0 5px; line-height: 1; }
@@ -67,6 +69,7 @@
                 <div class="form-group"><label>預約姓名</label><input type="text" id="inputName" placeholder="請輸入姓名" required></div>
                 <div class="form-group"><label>聯絡電話</label><input type="tel" id="inputPhone" placeholder="09xx-xxx-xxx" required></div>
                 
+                <!-- 動態服務項目 -->
                 <div class="form-group">
                     <label>服務項目</label>
                     <div id="serviceContainer">
@@ -131,8 +134,11 @@
             "韓式睫毛管理 $1,290",
             "單次微創洗眉 $1,990",
             "無限包套優惠 $8,990",
+            "－",
             "3 個月內補色 $0",
-            "超過 3 個月補色 $半價"
+            "超過 3 個月補色 $半價",
+            "包套睫毛回訪 $0",
+            "包套除色回訪 $0"
         ];
 
         function initTimeSlots() {
@@ -145,13 +151,21 @@
             }
         }
 
-        // --- 動態新增服務功能 ---
+        // --- 動態新增服務功能 (更新版) ---
         function createServiceSelect(value) {
             const select = document.createElement('select');
             select.className = 'service-select';
-            // ★ 當選擇改變時，更新所有選單的可選狀態 ★
+            // 加入 required 屬性，配合 CSS :invalid 讓顏色變淡
+            select.required = true;
             select.onchange = updateAvailableOptions; 
             
+            // ★★★ 1. 插入預設隱藏選項 ★★★
+            const placeholder = new Option("請選擇服務項目", "");
+            placeholder.disabled = true;
+            placeholder.hidden = true;
+            if (!value) placeholder.selected = true; // 若無值則預選此項
+            select.add(placeholder);
+
             serviceOptions.forEach(opt => {
                 const option = new Option(opt, opt);
                 if (value && opt === value) option.selected = true;
@@ -168,6 +182,7 @@
             const select = createServiceSelect(selectedValue);
             row.appendChild(select);
 
+            // 如果不是第一行，添加刪除按鈕
             if (container.children.length > 0) {
                 const removeBtn = document.createElement('button');
                 removeBtn.type = 'button';
@@ -175,39 +190,40 @@
                 removeBtn.innerHTML = '×';
                 removeBtn.onclick = function() { 
                     container.removeChild(row); 
-                    // ★ 刪除後也要更新選項狀態 ★
                     updateAvailableOptions();
                 };
                 row.appendChild(removeBtn);
             }
 
             container.appendChild(row);
-            // ★ 新增後更新選項狀態 ★
             updateAvailableOptions();
         }
 
-        // ★★★ 核心邏輯：檢查並鎖定已選項目 ★★★
+        // ★★★ 核心邏輯：檢查並鎖定已選項目 (修正版) ★★★
         function updateAvailableOptions() {
             const selects = document.querySelectorAll('.service-select');
             const selectedValues = [];
             
-            // 1. 收集目前所有已選的值
+            // 收集已選值 (不包含空白的 placeholder)
             selects.forEach(sel => {
                 if (sel.value) selectedValues.push(sel.value);
             });
 
-            // 2. 遍歷所有下拉選單，隱藏/鎖定已被其他選單選走的項目
+            // 遍歷鎖定
             selects.forEach(sel => {
-                const myValue = sel.value; // 自己當前選的值
+                const myValue = sel.value; 
                 for (let i = 0; i < sel.options.length; i++) {
                     const opt = sel.options[i];
-                    // 如果這個選項在「已選清單」中，且不是「我自己當前選的」，就鎖起來
+                    
+                    // ★★★ 2. 跳過空白的 placeholder 選項，不對其做鎖定操作 ★★★
+                    if (!opt.value) continue;
+
                     if (selectedValues.includes(opt.value) && opt.value !== myValue) {
-                        opt.disabled = true; // 變灰
-                        opt.style.display = 'none'; // 嘗試隱藏 (在部分手機有效)
+                        opt.disabled = true; 
+                        opt.style.display = 'none'; 
                     } else {
                         opt.disabled = false;
-                        opt.style.display = ''; // 恢復顯示
+                        opt.style.display = ''; 
                     }
                 }
             });
@@ -216,7 +232,10 @@
         function getSelectedServices() {
             const selects = document.querySelectorAll('.service-select');
             const values = [];
-            selects.forEach(sel => values.push(sel.value));
+            selects.forEach(sel => {
+                // ★★★ 3. 過濾空白值 ★★★
+                if (sel.value) values.push(sel.value);
+            });
             return values.join(" + "); 
         }
 
@@ -325,7 +344,6 @@
             document.getElementById('inputPhone').disabled = true;
             document.getElementById('inputLocation').disabled = true; 
             
-            // 鎖定所有服務選單與按鈕
             const selects = document.querySelectorAll('.service-select');
             selects.forEach(sel => sel.disabled = true);
             document.getElementById('btnAddService').style.display = 'none';
@@ -360,7 +378,8 @@
             const time = document.getElementById('inputTime').value;
             const userId = document.getElementById('userIdText').innerText;
 
-            if(!name || !phone || !date) { alert("請填寫完整資訊"); return; }
+            // ★★★ 4. 加入 service 檢查 ★★★
+            if(!name || !phone || !date || !service) { alert("請填寫完整資訊 (請選擇服務項目)"); return; }
 
             const today = new Date();
             today.setDate(today.getDate() + 1);
