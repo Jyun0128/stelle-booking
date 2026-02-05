@@ -75,6 +75,9 @@
         .history-date { font-weight: bold; color: var(--text-dark); font-size: 16px; margin-bottom: 5px; }
         .history-service { font-size: 14px; color: var(--text-light); margin-bottom: 3px; }
         .history-status { font-size: 12px; color: #9E9E9E; text-align: right; position: absolute; top: 15px; right: 15px; }
+        
+        /* 錯誤訊息紅字 */
+        .error-msg { color: #D32F2F; font-size: 12px; margin-top: 5px; }
     </style>
 </head>
 <body>
@@ -144,6 +147,9 @@
                 <div class="empty-state">尚無預約紀錄</div> 
             </div>
 
+            <!-- 用來顯示錯誤訊息的隱藏區塊 (除錯用) -->
+            <div id="debug-error-msg" class="error-msg"></div>
+
             <button type="button" class="btn-link" onclick="showBookingForm()">← 返回預約</button>
         </div>
     </div>
@@ -165,7 +171,9 @@
 
     <script>
         const YOUR_LIFF_ID = '2008676848-7eEjQ8U9'; 
-        // ★★★ 請確認這裡的網址是您最新的 Apps Script 部署網址 (需包含 doGet/doPost) ★★★
+        
+        // ★★★ 請確保填入「部署 > 管理部署 > 複製」出來的最新網址 ★★★
+        // 且該次部署的「誰可以存取」必須是「所有人 (Anyone)」
         const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzFZMsvRXC1Muvh6J2vcOTErZPpYPJgTezDEoeDPUDf1bQQgVkzbdJPNQ_Pe9PXEdSRQA/exec'; 
 
         // 會員與使用者資料
@@ -426,7 +434,7 @@
             document.getElementById('submitBtn').innerText = "確認預約";
         }
 
-        // --- 會員系統相關函數 ---
+        // --- 會員系統相關函數 (除錯加強版) ---
         function showMemberPage() {
             document.getElementById('booking-form-section').style.display = 'none';
             document.getElementById('member-section').style.display = 'block';
@@ -437,13 +445,16 @@
         function showBookingForm() {
             document.getElementById('member-section').style.display = 'none';
             document.getElementById('booking-form-section').style.display = 'block';
+            document.getElementById('debug-error-msg').innerText = ""; // 清除錯誤訊息
         }
 
         function fetchBookingHistory() {
             const container = document.getElementById('history-container');
             const loading = document.getElementById('history-loading');
+            const errorMsg = document.getElementById('debug-error-msg');
             
             container.innerHTML = '';
+            errorMsg.innerText = '';
             loading.style.display = 'block';
 
             if (!GOOGLE_SCRIPT_URL) {
@@ -452,22 +463,59 @@
                 return;
             }
 
+            if (!currentUser.userId) {
+                loading.style.display = 'none';
+                container.innerHTML = '<div class="empty-state">無法讀取 UserID，請重新整理</div>';
+                return;
+            }
+
             const fetchUrl = `${GOOGLE_SCRIPT_URL}?action=read&userId=${currentUser.userId}`;
+            // console.log("Fetching: " + fetchUrl); // 除錯用
 
             fetch(fetchUrl)
-                .then(response => response.json())
+                .then(response => {
+                    // 檢查回應狀態
+                    if (!response.ok) {
+                        throw new Error(`HTTP Error: ${response.status}`);
+                    }
+                    return response.text(); // 先轉成文字，避免直接轉 JSON 失敗
+                })
+                .then(text => {
+                    try {
+                        return JSON.parse(text);
+                    } catch (e) {
+                        // 如果解析 JSON 失敗，通常代表回傳了 HTML (例如 404, 403 錯誤頁面)
+                        throw new Error("回傳格式錯誤 (可能為權限不足)");
+                    }
+                })
                 .then(data => {
                     loading.style.display = 'none';
-                    if (data.status === 'success' && data.data.length > 0) {
+                    if (data.status === 'success' && data.data && data.data.length > 0) {
                         renderHistoryList(data.data);
+                    } else if (data.status === 'success') {
+                        container.innerHTML = `<div class="empty-state">目前沒有找到您的預約紀錄喔！<br><small>(ID: ${currentUser.userId})</small></div>`;
                     } else {
-                        container.innerHTML = '<div class="empty-state">目前沒有找到您的預約紀錄喔！</div>';
+                        throw new Error(data.message || "未知錯誤");
                     }
                 })
                 .catch(err => {
                     loading.style.display = 'none';
                     console.error('Fetch Error:', err);
-                    container.innerHTML = '<div class="empty-state">讀取資料失敗，請稍後再試。</div>';
+                    
+                    let displayError = "讀取資料失敗，請稍後再試。";
+                    let detailError = err.message;
+
+                    // 判斷常見錯誤
+                    if (detailError.includes("Failed to fetch") || detailError.includes("NetworkError")) {
+                        detailError = "網路連線失敗，或網址 CORS 被擋";
+                    } else if (detailError.includes("HTTP Error: 403") || detailError.includes("權限不足")) {
+                        detailError = "Apps Script 權限未開 (請確認部署為「所有人」)";
+                    } else if (detailError.includes("Unexpected token")) {
+                         detailError = "回傳資料格式錯誤 (非 JSON)";
+                    }
+
+                    container.innerHTML = `<div class="empty-state">${displayError}</div>`;
+                    errorMsg.innerHTML = `除錯資訊: ${detailError}<br>ID: ${currentUser.userId}`;
                 });
         }
 
@@ -477,7 +525,6 @@
             
             records.reverse().forEach(record => {
                 let displayDate = record.date;
-                // 簡易日期格式處理
                 if (typeof displayDate === 'string' && displayDate.includes('T')) {
                     displayDate = displayDate.split('T')[0];
                 }
