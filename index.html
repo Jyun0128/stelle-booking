@@ -8,16 +8,20 @@
     <script charset="utf-8" src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
     
     <style>
-        /* ... 樣式區保持不變 ... */
+        /* --- 2025 新版摩卡配色 --- */
         :root { --primary-brown: #8D6E63; --bg-color: #F8F6F3; --card-white: #FFFFFF; --text-dark: #5D4037; --text-light: #8D6E63; --accent-bar: #795548; --input-bg: #FCFBF9; --input-border: #E8E0DD; }
         * { box-sizing: border-box; }
         body { font-family: 'Noto Sans TC', sans-serif; background-color: var(--bg-color); color: var(--text-dark); margin: 0; padding: 20px; display: flex; justify-content: center; min-height: 100vh; }
-        .container { background-color: var(--card-white); width: 100%; max-width: 480px; padding: 40px 30px; border-radius: 20px; box-shadow: 0 10px 25px rgba(93, 64, 55, 0.08); display: flex; flex-direction: column; align-items: center; }
+        .container { background-color: var(--card-white); width: 100%; max-width: 480px; padding: 40px 30px; border-radius: 20px; box-shadow: 0 10px 25px rgba(93, 64, 55, 0.08); display: flex; flex-direction: column; align-items: center; min-height: 600px; }
         .brand-title { font-family: 'Cormorant Garamond', serif; font-size: 38px; font-weight: 600; color: var(--text-dark); margin: 0 0 5px 0; letter-spacing: 1px; }
         .sub-title { font-size: 14px; color: var(--text-light); font-weight: 500; margin-bottom: 30px; letter-spacing: 3px; text-transform: uppercase; }
         #loading-status { font-size: 14px; color: var(--text-light); margin-top: 20px; text-align: center; }
-        .section-block { display: none; width: 100%; text-align: center; animation: fadeIn 0.8s ease; }
+        
+        /* 區塊顯示控制 */
+        .section-block { display: none; width: 100%; text-align: center; animation: fadeIn 0.5s ease; }
+        
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        
         .user-avatar { width: 80px; height: 80px; border-radius: 50%; object-fit: cover; border: 3px solid var(--bg-color); box-shadow: 0 4px 10px rgba(0,0,0,0.08); margin-bottom: 15px; }
         .greeting { font-size: 16px; color: var(--text-dark); margin-bottom: 25px; }
         .greeting span { font-weight: 500; color: var(--primary-brown); }
@@ -28,32 +32,49 @@
         select { background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%238D6E63' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e"); background-repeat: no-repeat; background-position: right 15px center; background-size: 16px; }
         input:focus, select:focus { border-color: var(--primary-brown); background-color: #fff; box-shadow: 0 0 0 3px rgba(141, 110, 99, 0.1); }
         
+        /* 按鈕樣式 */
         .btn-submit { background-color: var(--primary-brown); color: white; border: none; padding: 15px; width: 100%; font-size: 16px; border-radius: 8px; cursor: pointer; margin-top: 15px; letter-spacing: 1.5px; transition: background 0.3s; font-weight: 500; }
         .btn-submit:hover { background-color: var(--accent-bar); }
         .btn-outline { background-color: transparent; color: var(--primary-brown); border: 1px solid var(--primary-brown); margin-top: 10px; }
         .btn-outline:hover { background-color: #FDF3F0; }
         .btn-submit:disabled { background-color: #ccc; cursor: not-allowed; }
+        
+        /* 會員頁面按鈕 */
+        .btn-secondary { background-color: transparent; color: var(--primary-brown); border: 1px solid var(--primary-brown); padding: 12px; width: 100%; font-size: 14px; border-radius: 8px; cursor: pointer; margin-top: 15px; letter-spacing: 1px; transition: all 0.3s; }
+        .btn-secondary:hover { background-color: var(--bg-color); }
+        .btn-link { background: none; border: none; color: var(--text-light); text-decoration: underline; cursor: pointer; margin-top: 15px; font-size: 14px; }
+
         .debug-info { font-size: 10px; color: #E0E0E0; margin-top: 30px; word-break: break-all; }
         
+        /* 預約詳情卡片 */
         .details-card { background: #FAFAFA; border-radius: 12px; padding: 20px; margin-bottom: 20px; text-align: left; border: 1px solid #EFEFEF; }
         .details-row { display: flex; justify-content: space-between; margin-bottom: 12px; border-bottom: 1px dashed #E0E0E0; padding-bottom: 8px; }
         .details-row:last-child { border-bottom: none; }
         .d-label { color: var(--text-light); font-size: 14px; }
         .d-value { color: var(--text-dark); font-weight: 600; font-size: 15px; }
         
+        /* Modal */
         .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: center; animation: fadeIn 0.3s; }
         .custom-modal { background: #fff; width: 85%; max-width: 360px; padding: 30px 25px; border-radius: 16px; text-align: center; }
         .modal-title { font-size: 18px; color: var(--primary-brown); font-weight: 600; margin-bottom: 20px; }
         .btn-modal-close { background-color: var(--primary-brown); color: white; border: none; padding: 12px 0; width: 100%; border-radius: 6px; cursor: pointer; }
         .reminder-text { font-size: 13px; color: var(--primary-brown); margin-top: 12px; margin-bottom: 5px; font-weight: 500; }
 
+        /* 動態服務項目樣式 */
         .service-row { display: flex; gap: 8px; margin-bottom: 10px; align-items: center; }
         .service-select { flex: 1; }
-        /* 讓 placeholder 顏色變淡 (選擇性) */
         .service-select:invalid { color: #D7CCC8; }
         .btn-add { background-color: #EFEBE9; color: var(--primary-brown); border: 1px dashed var(--primary-brown); border-radius: 8px; padding: 10px; width: 100%; cursor: pointer; font-size: 14px; transition: 0.3s; margin-bottom: 10px; }
         .btn-add:hover { background-color: #FDF3F0; }
         .btn-remove { background: none; border: none; color: #F44336; font-size: 20px; cursor: pointer; padding: 0 5px; line-height: 1; }
+
+        /* --- 新增：會員歷史紀錄樣式 --- */
+        .history-list { text-align: left; margin-top: 20px; max-height: 400px; overflow-y: auto; }
+        .empty-state { color: var(--text-light); text-align: center; padding: 20px; font-size: 14px; }
+        .history-card { background-color: var(--input-bg); border-radius: 10px; padding: 15px; margin-bottom: 12px; position: relative; border-left: 4px solid var(--primary-brown); }
+        .history-date { font-weight: bold; color: var(--text-dark); font-size: 16px; margin-bottom: 5px; }
+        .history-service { font-size: 14px; color: var(--text-light); margin-bottom: 3px; }
+        .history-status { font-size: 12px; color: #9E9E9E; text-align: right; position: absolute; top: 15px; right: 15px; }
     </style>
 </head>
 <body>
@@ -62,6 +83,7 @@
         <h2 class="sub-title">蒔黛美學 線上預約</h2>
         <div id="loading-status">LINE 系統連線中...</div>
 
+        <!-- 1. 預約表單頁面 -->
         <div id="booking-form-section" class="section-block">
             <img id="userPicture" class="user-avatar" src="" alt="User">
             <p class="greeting">您好，<span id="userName"></span></p>
@@ -88,10 +110,15 @@
                 <div class="form-group"><label>期望日期</label><input type="date" id="inputDate" required></div>
                 <div class="form-group"><label>期望時間</label><select id="inputTime" required></select><p class="reminder-text">送出不代表預約成功，請靜待預約成功訊息通知</p></div>
                 <button type="submit" id="submitBtn" class="btn-submit">確認預約</button>
+                
+                <!-- 新增：前往會員頁面按鈕 -->
+                <button type="button" class="btn-secondary" onclick="showMemberPage()">會員專區 / 預約紀錄</button>
+
                 <div class="debug-info">User ID: <span id="userIdText"></span></div>
             </form>
         </div>
 
+        <!-- 2. 預約詳情頁面 (View Mode) -->
         <div id="booking-details-section" class="section-block">
             <h3 style="font-size:18px; margin-bottom:20px; color:var(--text-dark);">目前預約詳情</h3>
             <div class="details-card">
@@ -103,8 +130,25 @@
             <button id="btn-modify-booking" onclick="switchToEditMode()" class="btn-submit">修改預約時段</button>
             <button onclick="liff.closeWindow()" class="btn-submit btn-outline">關閉視窗</button>
         </div>
+
+        <!-- 3. 新增：會員頁面 (Member Section) -->
+        <div id="member-section" class="section-block">
+            <h3 style="color: var(--primary-brown); font-weight: 500;">我的預約紀錄</h3>
+            
+            <div id="history-loading" style="display:none; color: var(--text-light); font-size: 14px; margin: 20px 0;">
+                正在讀取資料...
+            </div>
+
+            <div id="history-container" class="history-list">
+                <!-- 預約紀錄會插入在這裡 -->
+                <div class="empty-state">尚無預約紀錄</div> 
+            </div>
+
+            <button type="button" class="btn-link" onclick="showBookingForm()">← 返回預約</button>
+        </div>
     </div>
 
+    <!-- Modal -->
     <div id="customModal" class="modal-overlay">
         <div class="custom-modal">
             <div class="modal-title">感謝您的預約！<br>請靜待確認通知</div>
@@ -121,8 +165,15 @@
 
     <script>
         const YOUR_LIFF_ID = '2008676848-7eEjQ8U9'; 
-        // ★★★ 請務必確認這裡的網址是您最新的 Apps Script 部署網址 ★★★
+        // ★★★ 請確認這裡的網址是您最新的 Apps Script 部署網址 (需包含 doGet/doPost) ★★★
         const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzFZMsvRXC1Muvh6J2vcOTErZPpYPJgTezDEoeDPUDf1bQQgVkzbdJPNQ_Pe9PXEdSRQA/exec'; 
+
+        // 會員與使用者資料
+        let currentUser = {
+            userId: '',
+            displayName: '',
+            pictureUrl: ''
+        };
 
         const serviceOptions = [
             "粉黛柔霧眉 $7,990",
@@ -142,38 +193,20 @@
             "包套除色回訪 $0"
         ];
 
-        // ★★★ 定義互斥群組 ★★★
+        // 互斥群組
         const conflictGroups = [
-            // 群組 1: 眉毛與除色相關 (只能選一個)
-            [
-                "粉黛柔霧眉 $7,990",
-                "立體野生眉 $9,990",
-                "野生粉黛眉 $13,990",
-                "單次微創洗眉 $1,990",
-                "無限包套優惠 $8,990",
-                "3 個月內補色 $0",
-                "超過 3 個月補色 $半價",
-                "包套除色回訪 $0"
-            ],
-            // 群組 2: 唇部相關 (只能選一個)
-            [
-                "輕染潤霧唇 $13,990",
-                "還原潤色唇 $16,990",
-                "唇淡色還原 $5,990",
-                "3 個月內補色 $0",
-                "超過 3 個月補色 $半價"
-            ],
-            // 群組 3: 睫毛相關 (只能選一個)
-            [
-                "韓式睫毛管理 $1,290",
-                "韓式睫毛管理+下睫毛 $1,790",
-                "包套睫毛回訪 $0"
-            ]
+            // 群組 1: 眉毛與除色
+            ["粉黛柔霧眉 $7,990", "立體野生眉 $9,990", "野生粉黛眉 $13,990", "單次微創洗眉 $1,990", "無限包套優惠 $8,990", "3 個月內補色 $0", "超過 3 個月補色 $半價", "包套除色回訪 $0"],
+            // 群組 2: 唇部
+            ["輕染潤霧唇 $13,990", "還原潤色唇 $16,990", "唇淡色還原 $5,990", "3 個月內補色 $0", "超過 3 個月補色 $半價"],
+            // 群組 3: 睫毛
+            ["韓式睫毛管理 $1,290", "韓式睫毛管理+下睫毛 $1,790", "包套睫毛回訪 $0"]
         ];
 
         function initTimeSlots() {
             const select = document.getElementById('inputTime');
             const startHour = 10; const endHour = 20;   
+            select.innerHTML = '';
             for (let h = startHour; h <= endHour; h++) {
                 let hourStr = h.toString().padStart(2, '0');
                 select.add(new Option(`${hourStr}:00`, `${hourStr}:00`));
@@ -181,26 +214,22 @@
             }
         }
 
-        // --- 動態新增服務功能 (更新版) ---
+        // --- 動態新增服務功能 ---
         function createServiceSelect(value) {
             const select = document.createElement('select');
             select.className = 'service-select';
-            // 加入 required 屬性，配合 CSS :invalid 讓顏色變淡
             select.required = true;
             select.onchange = updateAvailableOptions; 
             
-            // ★★★ 1. 插入預設隱藏選項 ★★★
             const placeholder = new Option("請選擇服務項目", "");
             placeholder.disabled = true;
             placeholder.hidden = true;
-            if (!value) placeholder.selected = true; // 若無值則預選此項
+            if (!value) placeholder.selected = true; 
             select.add(placeholder);
 
             serviceOptions.forEach(opt => {
                 const option = new Option(opt, opt);
-                if (opt === "－") {
-                    option.disabled = true; // 分隔線不可選
-                }
+                if (opt === "－") option.disabled = true; 
                 if (value && opt === value) option.selected = true;
                 select.add(option);
             });
@@ -215,7 +244,6 @@
             const select = createServiceSelect(selectedValue);
             row.appendChild(select);
 
-            // 如果不是第一行，添加刪除按鈕
             if (container.children.length > 0) {
                 const removeBtn = document.createElement('button');
                 removeBtn.type = 'button';
@@ -223,64 +251,38 @@
                 removeBtn.innerHTML = '×';
                 removeBtn.onclick = function() { 
                     container.removeChild(row); 
-                    // ★ 刪除後也要更新選項狀態 ★
                     updateAvailableOptions();
                 };
                 row.appendChild(removeBtn);
             }
-
             container.appendChild(row);
-            // ★ 新增後更新選項狀態 ★
             updateAvailableOptions();
         }
 
-        // ★★★ 核心邏輯：檢查並鎖定已選項目 (升級版) ★★★
         function updateAvailableOptions() {
             const selects = document.querySelectorAll('.service-select');
-            
-            // 收集目前所有已選的值 (不含空白)
             const allSelectedValues = Array.from(selects).map(s => s.value).filter(v => v);
 
-            // 遍歷每一個選單來決定哪些選項該鎖定
             selects.forEach(sel => {
-                const myValue = sel.value; // 自己當前選的值
-
+                const myValue = sel.value; 
                 for (let i = 0; i < sel.options.length; i++) {
                     const opt = sel.options[i];
-                    
-                    // 跳過空白 placeholder 和分隔線
                     if (!opt.value || opt.value === "－") continue;
 
                     let shouldDisable = false;
-
-                    // 規則 1: 已經被選走的，不能再選 (除非是自己選的)
-                    if (allSelectedValues.includes(opt.value) && opt.value !== myValue) {
-                        shouldDisable = true;
-                    }
-
-                    // 規則 2: 檢查互斥群組
+                    // 規則 1: 已經被選走的
+                    if (allSelectedValues.includes(opt.value) && opt.value !== myValue) shouldDisable = true;
+                    // 規則 2: 檢查互斥
                     if (!shouldDisable) {
                         for (const group of conflictGroups) {
-                            // 如果這個選項屬於某個群組
                             if (group.includes(opt.value)) {
-                                // 檢查已選項目中，是否包含「同群組」的其他項目 (排除自己)
                                 const conflictFound = allSelectedValues.some(val => val !== myValue && group.includes(val));
-                                if (conflictFound) {
-                                    shouldDisable = true;
-                                    break; // 只要撞到一個規則就鎖定，不用繼續查
-                                }
+                                if (conflictFound) { shouldDisable = true; break; }
                             }
                         }
                     }
-
-                    // 執行鎖定或解鎖
-                    if (shouldDisable) {
-                        opt.disabled = true; 
-                        opt.style.display = 'none'; // 隱藏
-                    } else {
-                        opt.disabled = false;
-                        opt.style.display = ''; // 顯示
-                    }
+                    if (shouldDisable) { opt.disabled = true; opt.style.display = 'none'; } 
+                    else { opt.disabled = false; opt.style.display = ''; }
                 }
             });
         }
@@ -288,10 +290,7 @@
         function getSelectedServices() {
             const selects = document.querySelectorAll('.service-select');
             const values = [];
-            selects.forEach(sel => {
-                // ★★★ 3. 過濾空白值 ★★★
-                if (sel.value) values.push(sel.value);
-            });
+            selects.forEach(sel => { if (sel.value) values.push(sel.value); });
             return values.join(" + "); 
         }
 
@@ -311,7 +310,6 @@
 
         window.onload = function() {
             initTimeSlots();
-            
             const today = new Date();
             const tomorrow = new Date(today);
             tomorrow.setDate(today.getDate() + 1);
@@ -344,6 +342,10 @@
 
         function handlePageLogic() {
             liff.getProfile().then(profile => {
+                currentUser.userId = profile.userId;
+                currentUser.displayName = profile.displayName;
+                currentUser.pictureUrl = profile.pictureUrl;
+
                 document.getElementById('userName').innerText = profile.displayName;
                 document.getElementById('inputName').value = profile.displayName;
                 document.getElementById('userIdText').innerText = profile.userId;
@@ -356,7 +358,7 @@
                 container.innerHTML = '';
 
                 if (currentParams.mode === 'view') {
-                    // --- 顯示詳情模式 ---
+                    // --- View Mode ---
                     document.getElementById('booking-form-section').style.display = 'none';
                     document.getElementById('booking-details-section').style.display = 'block';
 
@@ -369,13 +371,10 @@
                     else document.getElementById('btn-modify-booking').style.display = 'inline-block';
 
                     document.getElementById('inputName').value = currentParams.name || profile.displayName;
-                    
                     if (currentParams.service) {
                         const services = currentParams.service.split(' + ');
                         services.forEach(svc => addServiceRow(svc.trim()));
-                    } else {
-                        addServiceRow();
-                    }
+                    } else { addServiceRow(); }
 
                     if(currentParams.location) document.getElementById('inputLocation').value = currentParams.location;
                     if(currentParams.phone) document.getElementById('inputPhone').value = currentParams.phone;
@@ -385,7 +384,7 @@
                         document.getElementById('inputTime').value = parts[1];
                     }
                 } else {
-                    // --- 正常預約模式 ---
+                    // --- Normal Booking Mode ---
                     document.getElementById('booking-form-section').style.display = 'block';
                     document.getElementById('booking-details-section').style.display = 'none';
                     addServiceRow(); 
@@ -427,6 +426,73 @@
             document.getElementById('submitBtn').innerText = "確認預約";
         }
 
+        // --- 會員系統相關函數 ---
+        function showMemberPage() {
+            document.getElementById('booking-form-section').style.display = 'none';
+            document.getElementById('member-section').style.display = 'block';
+            document.getElementById('booking-details-section').style.display = 'none';
+            fetchBookingHistory();
+        }
+
+        function showBookingForm() {
+            document.getElementById('member-section').style.display = 'none';
+            document.getElementById('booking-form-section').style.display = 'block';
+        }
+
+        function fetchBookingHistory() {
+            const container = document.getElementById('history-container');
+            const loading = document.getElementById('history-loading');
+            
+            container.innerHTML = '';
+            loading.style.display = 'block';
+
+            if (!GOOGLE_SCRIPT_URL) {
+                loading.style.display = 'none';
+                container.innerHTML = '<div class="empty-state">尚未設定資料庫連結</div>';
+                return;
+            }
+
+            const fetchUrl = `${GOOGLE_SCRIPT_URL}?action=read&userId=${currentUser.userId}`;
+
+            fetch(fetchUrl)
+                .then(response => response.json())
+                .then(data => {
+                    loading.style.display = 'none';
+                    if (data.status === 'success' && data.data.length > 0) {
+                        renderHistoryList(data.data);
+                    } else {
+                        container.innerHTML = '<div class="empty-state">目前沒有找到您的預約紀錄喔！</div>';
+                    }
+                })
+                .catch(err => {
+                    loading.style.display = 'none';
+                    console.error('Fetch Error:', err);
+                    container.innerHTML = '<div class="empty-state">讀取資料失敗，請稍後再試。</div>';
+                });
+        }
+
+        function renderHistoryList(records) {
+            const container = document.getElementById('history-container');
+            let html = '';
+            
+            records.reverse().forEach(record => {
+                let displayDate = record.date;
+                // 簡易日期格式處理
+                if (typeof displayDate === 'string' && displayDate.includes('T')) {
+                    displayDate = displayDate.split('T')[0];
+                }
+                
+                html += `
+                    <div class="history-card">
+                        <div class="history-date">${displayDate} ${record.time}</div>
+                        <div class="history-service">${record.service}</div>
+                        <div class="history-status">已預約</div>
+                    </div>
+                `;
+            });
+            container.innerHTML = html;
+        }
+
         function submitBooking() {
             const name = document.getElementById('inputName').value;
             const phone = document.getElementById('inputPhone').value;
@@ -457,17 +523,14 @@
 
             const data = { name, phone, service, location, date, time, userId, secret: "Stelle2025Secure" };
 
-            if (GOOGLE_SCRIPT_URL && GOOGLE_SCRIPT_URL.startsWith('https://script.google.com')) {
+            // 使用 POST 送出預約
+            if (GOOGLE_SCRIPT_URL) {
                 fetch(GOOGLE_SCRIPT_URL, {
                     method: 'POST',
                     body: JSON.stringify(data),
                     mode: 'no-cors', 
                     headers: { 'Content-Type': 'text/plain' }
                 }).then(() => console.log('Sent')).catch(err => console.error(err));
-            } else {
-                alert("系統錯誤：未設定後端網址");
-                submitBtn.disabled = false;
-                return;
             }
 
             if (liff.isInClient()) {
